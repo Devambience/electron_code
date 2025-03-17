@@ -1,0 +1,329 @@
+:root {
+    /* Base colors - these will be overridden by theme files */
+    --bg-primary: #1e1e1e;
+    --bg-secondary: #252526;
+    --bg-tertiary: #333333;
+    --text-primary: #d4d4d4;
+    --text-secondary: #bbbbbb;
+    --text-tertiary: #888888;
+    --border-color: #454545;
+    --accent-color: #0078d4;
+    --error-color: #f48771;
+    --warning-color: #cca700;
+    --success-color: #89d185;
+  }
+  
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    color: var(--text-primary);
+    background-color: var(--bg-primary);
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+  
+  .app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+  }
+  
+  .sidebar {
+    width: 250px;
+    height: 100%;
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+    transition: width 0.2s ease;
+  }
+  
+  .sidebar.collapsed {
+    width: 0;
+  }
+  
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  .tabs-container {
+    height: 35px;
+    background-color: var(--bg-primary);
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+  }
+  
+  .tabs {
+    display: inline-flex;
+    height: 100%;
+  }
+  
+  .tab {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    min-width: 120px;
+    max-width: 200px;
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    cursor: pointer;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  
+  .tab.active {
+    background-color: var(--bg-primary);
+    border-top: 2px solid var(--accent-color);
+  }
+  
+  .tab-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .tab-close {
+    margin-left: 5px;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+  
+  .tab-close:hover {
+    background-color: var(--bg-tertiary);
+  }
+  
+  .editor-container {
+    flex: 1;
+    overflow: hidden;
+  }
+  
+  .terminal-container {
+    height: 30%;
+    min-height: 100px;
+    background-color: var(--bg-primary);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  
+  .terminal-container.collapsed {
+    height: 0;
+    min-height: 0;
+    border-top: none;
+  }
+  
+  .terminal-header {
+    height: 30px;
+    background-color: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .terminal-tabs {
+    flex: 1;
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  .terminal-tab {
+    padding: 0 10px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  
+  .terminal-tab.active {
+    border-bottom: 2px solid var(--accent-color);
+  }
+  
+  .terminal-actions {
+    display: flex;
+    gap: 5px;
+  }
+  
+  .terminals {
+    flex: 1;
+    overflow: hidden;
+  }
+  
+  .terminal {
+    height: 100%;
+    padding: 5px;
+    display: none;
+  }
+  
+  .terminal.active {
+    display: block;
+  }
+  
+  button {
+    background-color: transparent;
+    color: var(--text-primary);
+    border: none;
+    padding: 3px 8px;
+    cursor: pointer;
+    border-radius: 3px;
+  }
+  
+  button:hover {
+    background-color: var(--bg-tertiary);
+  }
+  
+  input {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 5px;
+    border-radius: 3px;
+  }
+  
+  .search-panel {
+    position: absolute;
+    top: 35px;
+    right: 20px;
+    width: 400px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .search-panel.visible {
+    display: block;
+  }
+  
+  .search-header {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .search-options {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .search-actions {
+    display: flex;
+    gap: 5px;
+    justify-content: flex-end;
+  }
+  
+  /* Context menu */
+  .context-menu {
+    position: absolute;
+    min-width: 150px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    z-index: 1000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .context-menu-item {
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  
+  .context-menu-item:hover {
+    background-color: var(--bg-tertiary);
+  }
+  
+  .context-menu-separator {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 3px 0;
+  }
+  
+  /* Animation for spinners */
+/* Animation for spinners */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .spinner {
+    animation: spin 1s linear infinite;
+  }
+  
+  /* Scrollbars */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+  }
+  
+  /* Drag and drop */
+  .drop-zone {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    gap: 10px;
+  }
+  
+  .drop-zone.active {
+    background-color: rgba(0, 120, 212, 0.1);
+    border: 2px dashed var(--accent-color);
+  }
+  
+  /* Resizable panels */
+  .resizable-handle {
+    width: 100%;
+    height: 5px;
+    background-color: var(--bg-primary);
+    cursor: ns-resize;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10;
+  }
+  
+  /* Settings panel */
+  .settings-editor {
+    width: 100%;
+    height: 100%;
+  }

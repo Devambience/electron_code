@@ -1,7 +1,168 @@
-#sidebar {
-    width: 20%;
-    height: 100%;
-    float: left;
-    background: #333;
-    color: white;
-  }
+.sidebar-header {
+  height: 35px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-title {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.9em;
+  color: var(--text-secondary);
+}
+
+.sidebar-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.file-explorer {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.file-tree {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.file-item {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-item.selected {
+  background-color: rgba(0, 120, 212, 0.2);
+}
+
+.file-item:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.file-content {
+  display: flex;
+  align-items: center;
+  padding: 3px 0;
+}
+
+.file-icon {
+  width: 16px;
+  height: 16px;
+  margin: 0 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-arrow {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(0deg);
+  transition: transform 0.1s ease;
+}
+
+.file-arrow.expanded {
+  transform: rotate(90deg);
+}
+
+.file-name {
+  margin-left: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-children {
+  margin-left: 16px;
+  display: none;
+}
+
+.file-children.expanded {
+  display: block;
+}
+
+/* File icons */
+.icon-folder {
+  color: #dcb67a;
+}
+
+.icon-file {
+  color: var(--text-primary);
+}
+
+.icon-file-js {
+  color: #f9e64f;
+}
+
+.icon-file-ts {
+  color: #3178c6;
+}
+
+.icon-file-html {
+  color: #e44d26;
+}
+
+.icon-file-css {
+  color: #1572b6;
+}
+
+.icon-file-json {
+  color: #fbc02d;
+}
+
+.icon-file-py {
+  color: #3572a5;
+}
+
+.icon-file-md {
+  color: #42a5f5;
+}
+
+/* Contextual menu for files */
+.file-context-menu {
+  position: absolute;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  padding: 5px 0;
+  z-index: 1000;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.file-context-menu-item {
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.file-context-menu-item:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.file-context-menu-separator {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 3px 0;
+}
+
+/* Rename input */
+.file-rename-input {
+  width: 100%;
+  padding: 0 5px;
+  margin-left: 5px;
+  height: 20px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--accent-color);
+  border-radius: 3px;
+}

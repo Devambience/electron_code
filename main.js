@@ -1,10 +1,8 @@
-const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const Store = require('electron-store');
-
-// Initialize settings store
-const store = new Store();
+const settings = new Store();
 
 // Keep a global reference of the window object
 let mainWindow;
@@ -17,31 +15,21 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'),
+      enableRemoteModule: false,
+      preload: path.join(__dirname, 'preload.js')
     },
-    icon: path.join(__dirname, 'src/assets/icons/icon.png'),
-    frame: true,
-    backgroundColor: '#1e1e1e',
+    icon: path.join(__dirname, 'assets', 'icons', 'icon.png')
   });
 
   // Load the index.html of the app
-  mainWindow.loadFile('renderer/index.html');
+  mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
   // Open DevTools in development mode
-  if (process.argv.includes('--dev')) {
+  if (process.argv.includes('--debug')) {
     mainWindow.webContents.openDevTools();
   }
 
   // Create the application menu
-  createMenu();
-
-  // Handle window closed
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
-}
-
-function createMenu() {
   const template = [
     {
       label: 'File',
@@ -51,36 +39,46 @@ function createMenu() {
           accelerator: 'CmdOrCtrl+N',
           click: () => {
             mainWindow.webContents.send('menu-new-file');
-          },
+          }
         },
         {
           label: 'Open File',
           accelerator: 'CmdOrCtrl+O',
-          click: () => {
-            openFile();
-          },
+          click: async () => {
+            const { canceled, filePaths } = await dialog.showOpenDialog({
+              properties: ['openFile']
+            });
+            if (!canceled) {
+              mainWindow.webContents.send('menu-open-file', filePaths[0]);
+            }
+          }
         },
         {
           label: 'Open Folder',
           accelerator: 'CmdOrCtrl+Shift+O',
-          click: () => {
-            openFolder();
-          },
+          click: async () => {
+            const { canceled, filePaths } = await dialog.showOpenDialog({
+              properties: ['openDirectory']
+            });
+            if (!canceled) {
+              mainWindow.webContents.send('menu-open-folder', filePaths[0]);
+            }
+          }
         },
         { type: 'separator' },
         {
           label: 'Save',
           accelerator: 'CmdOrCtrl+S',
           click: () => {
-            mainWindow.webContents.send('menu-save');
-          },
+            mainWindow.webContents.send('menu-save-file');
+          }
         },
         {
           label: 'Save As',
           accelerator: 'CmdOrCtrl+Shift+S',
           click: () => {
-            saveFileAs();
-          },
+            mainWindow.webContents.send('menu-save-file-as');
+          }
         },
         { type: 'separator' },
         {
@@ -88,9 +86,9 @@ function createMenu() {
           accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Alt+F4',
           click: () => {
             app.quit();
-          },
-        },
-      ],
+          }
+        }
+      ]
     },
     {
       label: 'Edit',
@@ -103,21 +101,23 @@ function createMenu() {
         { role: 'paste' },
         { role: 'delete' },
         { type: 'separator' },
+        { role: 'selectAll' },
+        { type: 'separator' },
         {
           label: 'Find',
           accelerator: 'CmdOrCtrl+F',
           click: () => {
             mainWindow.webContents.send('menu-find');
-          },
+          }
         },
         {
           label: 'Replace',
           accelerator: 'CmdOrCtrl+H',
           click: () => {
             mainWindow.webContents.send('menu-replace');
-          },
-        },
-      ],
+          }
+        }
+      ]
     },
     {
       label: 'View',
@@ -126,35 +126,40 @@ function createMenu() {
           label: 'Toggle Sidebar',
           accelerator: 'CmdOrCtrl+B',
           click: () => {
-            mainWindow.webContents.send('toggle-sidebar');
-          },
+            mainWindow.webContents.send('menu-toggle-sidebar');
+          }
         },
         {
           label: 'Toggle Terminal',
           accelerator: 'CmdOrCtrl+`',
           click: () => {
-            mainWindow.webContents.send('toggle-terminal');
-          },
+            mainWindow.webContents.send('menu-toggle-terminal');
+          }
         },
         { type: 'separator' },
-        {
-          label: 'Toggle Line Numbers',
-          click: () => {
-            mainWindow.webContents.send('toggle-line-numbers');
-          },
-        },
         {
           label: 'Toggle Word Wrap',
           click: () => {
-            mainWindow.webContents.send('toggle-word-wrap');
-          },
+            mainWindow.webContents.send('menu-toggle-word-wrap');
+          }
+        },
+        {
+          label: 'Toggle Line Numbers',
+          click: () => {
+            mainWindow.webContents.send('menu-toggle-line-numbers');
+          }
         },
         { type: 'separator' },
-        { role: 'togglefullscreen' },
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
         { role: 'zoomIn' },
         { role: 'zoomOut' },
-        { role: 'resetZoom' },
-      ],
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
     },
     {
       label: 'Terminal',
@@ -163,272 +168,140 @@ function createMenu() {
           label: 'New Terminal',
           accelerator: 'CmdOrCtrl+Shift+`',
           click: () => {
-            mainWindow.webContents.send('new-terminal');
-          },
+            mainWindow.webContents.send('menu-new-terminal');
+          }
         },
         {
           label: 'Clear Terminal',
           click: () => {
-            mainWindow.webContents.send('clear-terminal');
-          },
-        },
-      ],
+            mainWindow.webContents.send('menu-clear-terminal');
+          }
+        }
+      ]
     },
     {
       label: 'Settings',
       submenu: [
         {
-          label: 'Theme',
-          submenu: [
-            {
-              label: 'Light',
-              click: () => {
-                mainWindow.webContents.send('change-theme', 'light');
-              },
-            },
-            {
-              label: 'Dark',
-              click: () => {
-                mainWindow.webContents.send('change-theme', 'dark');
-              },
-            },
-          ],
-        },
-        {
-          label: 'Edit Settings',
+          label: 'Open Settings',
           click: () => {
-            mainWindow.webContents.send('open-settings');
-          },
-        },
-      ],
-    },
-    {
-      label: 'Help',
-      submenu: [
-        {
-          label: 'About',
-          click: () => {
-            dialog.showMessageBox(mainWindow, {
-              title: 'About Electron Code Editor',
-              message: 'Electron Code Editor v1.0.0',
-              detail: 'A lightweight cross-platform IDE built with Electron.js',
-              buttons: ['OK'],
-            });
-          },
-        },
-      ],
-    },
+            mainWindow.webContents.send('menu-open-settings');
+          }
+        }
+      ]
+    }
   ];
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 }
 
-async function openFile() {
-  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openFile'],
-    filters: [
-      { name: 'Text Files', extensions: ['txt', 'md', 'js', 'py', 'html', 'css', 'json', 'ts', 'jsx', 'tsx'] },
-      { name: 'All Files', extensions: ['*'] },
-    ],
+// This method will be called when Electron has finished
+// initialization and is ready to create browser windows.
+app.whenReady().then(() => {
+  createWindow();
+
+  app.on('activate', function () {
+    // On macOS it's common to re-create a window in the app when the
+    // dock icon is clicked and there are no other windows open.
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
 
-  if (!canceled && filePaths.length > 0) {
-    const filePath = filePaths[0];
-    try {
-      const content = fs.readFileSync(filePath, 'utf8');
-      mainWindow.webContents.send('file-opened', { filePath, content });
-    } catch (err) {
-      dialog.showErrorBox('Error', `Failed to open file: ${err.message}`);
-    }
-  }
-}
+// Quit when all windows are closed, except on macOS.
+app.on('window-all-closed', function () {
+  if (process.platform !== 'darwin') app.quit();
+});
 
-async function openFolder() {
-  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openDirectory'],
-  });
-
-  if (!canceled && filePaths.length > 0) {
-    const folderPath = filePaths[0];
-    mainWindow.webContents.send('folder-opened', folderPath);
-  }
-}
-
-async function saveFileAs() {
-  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
-    filters: [
-      { name: 'Text Files', extensions: ['txt', 'md', 'js', 'py', 'html', 'css', 'json', 'ts', 'jsx', 'tsx'] },
-      { name: 'All Files', extensions: ['*'] },
-    ],
-  });
-
-  if (!canceled && filePath) {
-    mainWindow.webContents.send('save-file-as', filePath);
-  }
-}
-
-// IPC Handlers
-ipcMain.handle('save-file', async (event, { filePath, content }) => {
+// Handle file system operations
+ipcMain.handle('read-file', async (event, filePath) => {
   try {
-    fs.writeFileSync(filePath, content, 'utf8');
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err.message };
+    const content = await fs.promises.readFile(filePath, 'utf8');
+    return { success: true, content };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 });
 
-ipcMain.handle('read-file', async (event, filePath) => {
+ipcMain.handle('write-file', async (event, filePath, content) => {
   try {
-    const content = fs.readFileSync(filePath, 'utf8');
-    return { success: true, content };
-  } catch (err) {
-    return { success: false, error: err.message };
+    await fs.promises.writeFile(filePath, content, 'utf8');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle('read-directory', async (event, dirPath) => {
   try {
-    const items = fs.readdirSync(dirPath, { withFileTypes: true });
-    const files = items.map(item => {
-      return {
-        name: item.name,
-        isDirectory: item.isDirectory(),
-        path: path.join(dirPath, item.name),
-      };
-    });
-    return { success: true, files };
-  } catch (err) {
-    return { success: false, error: err.message };
+    const items = await fs.promises.readdir(dirPath, { withFileTypes: true });
+    const result = items.map(item => ({
+      name: item.name,
+      isDirectory: item.isDirectory(),
+      path: path.join(dirPath, item.name)
+    }));
+    return { success: true, items: result };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 });
 
-ipcMain.handle('create-file', async (event, { parentDir, fileName }) => {
+ipcMain.handle('create-file', async (event, filePath) => {
   try {
-    const filePath = path.join(parentDir, fileName);
-    fs.writeFileSync(filePath, '', 'utf8');
-    return { success: true, filePath };
-  } catch (err) {
-    return { success: false, error: err.message };
+    await fs.promises.writeFile(filePath, '', 'utf8');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 });
 
-ipcMain.handle('create-directory', async (event, { parentDir, dirName }) => {
+ipcMain.handle('create-directory', async (event, dirPath) => {
   try {
-    const dirPath = path.join(parentDir, dirName);
-    fs.mkdirSync(dirPath);
-    return { success: true, dirPath };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
-});
-
-ipcMain.handle('rename-item', async (event, { oldPath, newName }) => {
-  try {
-    const dirPath = path.dirname(oldPath);
-    const newPath = path.join(dirPath, newName);
-    fs.renameSync(oldPath, newPath);
-    return { success: true, newPath };
-  } catch (err) {
-    return { success: false, error: err.message };
+    await fs.promises.mkdir(dirPath, { recursive: true });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle('delete-item', async (event, itemPath) => {
   try {
-    const stats = fs.statSync(itemPath);
+    const stats = await fs.promises.lstat(itemPath);
     if (stats.isDirectory()) {
-      fs.rmdirSync(itemPath, { recursive: true });
+      await fs.promises.rmdir(itemPath, { recursive: true });
     } else {
-      fs.unlinkSync(itemPath);
+      await fs.promises.unlink(itemPath);
     }
     return { success: true };
-  } catch (err) {
-    return { success: false, error: err.message };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 });
 
-ipcMain.handle('get-settings', async () => {
-  return store.get('settings', {
-    theme: 'dark',
-    fontSize: 14,
-    wordWrap: true,
-    lineNumbers: true,
-    autoSave: true,
-    tabSize: 2,
-    showIndentGuides: true,
-  });
+ipcMain.handle('rename-item', async (event, oldPath, newPath) => {
+  try {
+    await fs.promises.rename(oldPath, newPath);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 });
 
-ipcMain.handle('save-settings', async (event, settings) => {
-  store.set('settings', settings);
+ipcMain.handle('show-save-dialog', async () => {
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    properties: ['createDirectory']
+  });
+  if (canceled) {
+    return { success: false, canceled: true };
+  }
+  return { success: true, filePath };
+});
+
+ipcMain.handle('get-settings', () => {
+  return settings.store;
+});
+
+ipcMain.handle('set-settings', (event, newSettings) => {
+  settings.set(newSettings);
   return { success: true };
-});
-
-// This method will be called when Electron has finished initialization
-app.whenReady().then(() => {
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
-});
-
-// Quit when all windows are closed, except on macOS
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-
-  // Show error dialog to user
-  if (mainWindow) {
-    dialog.showErrorBox(
-      'An error occurred',
-      `An unexpected error occurred: ${error.message}\n\nThe application may need to restart.`
-    );
-  }
-});
-
-// Register custom protocol handler for your app (optional)
-if (process.defaultApp) {
-  if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient('electron-code-editor', process.execPath, [path.resolve(process.argv[1])]);
-  }
-} else {
-  app.setAsDefaultProtocolClient('electron-code-editor');
-}
-
-// Handle file/protocol arguments on macOS
-app.on('open-file', (event, path) => {
-  event.preventDefault();
-  if (mainWindow) {
-    mainWindow.webContents.send('file-opened-from-system', path);
-  } else {
-    // Store the path to be opened when the window is created
-    app.whenReady().then(() => {
-      mainWindow.webContents.send('file-opened-from-system', path);
-    });
-  }
-});
-
-// Handle deep linking
-app.on('second-instance', (event, commandLine, workingDirectory) => {
-  // Someone tried to run a second instance, we should focus our window
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.focus();
-
-    // Check for protocol links or file paths in the command line args
-    const url = commandLine.find(arg => arg.startsWith('electron-code-editor://'));
-    if (url) {
-      mainWindow.webContents.send('deep-link', url);
-    }
-  }
 });
